@@ -470,6 +470,16 @@ impl App {
                 self.jobs_list.next();
             }
 
+            // Toggle expand/collapse array group under cursor
+            (_, KeyCode::Char('z'))
+                if !self.filter_popup.visible
+                    && !self.script_view.visible
+                    && !self.columns_popup.visible
+                    && !self.log_view.visible =>
+            {
+                self.jobs_list.toggle_group_expand();
+            }
+
             // Selection
             (_, KeyCode::Char(' '))
                 if !self.filter_popup.visible

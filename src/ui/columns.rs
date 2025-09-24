@@ -82,8 +82,9 @@ impl JobColumn {
     /// Get the default width constraint for this column
     pub fn default_width(&self) -> Constraint {
         match self {
-            JobColumn::Id => Constraint::Length(10),
-            JobColumn::Name => Constraint::Percentage(20),
+            // Swap widths between Id and Name per user request
+            JobColumn::Id => Constraint::Percentage(20),
+            JobColumn::Name => Constraint::Length(10),
             JobColumn::User => Constraint::Length(10),
             JobColumn::State => Constraint::Length(12),
             JobColumn::Partition => Constraint::Length(12),

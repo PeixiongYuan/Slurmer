@@ -234,6 +234,7 @@ impl LogView {
         }
 
         let log_area = area;
+        // Clear the whole area to avoid residual characters when lines shrink
         frame.render_widget(Clear, log_area);
 
         let title = match &self.job_id {
@@ -253,10 +254,20 @@ impl LogView {
             _ => self.content.clone(),
         };
 
+        // Compute inner area size (content region inside borders)
+        let inner_area = Rect {
+            x: log_area.x.saturating_add(1),
+            y: log_area.y.saturating_add(1),
+            width: log_area.width.saturating_sub(2),
+            height: log_area.height.saturating_sub(2),
+        };
+        let inner_height = inner_area.height as usize;
+        let inner_width = inner_area.width as usize;
+
         let fit_text = Self::fit_text(
             &log_text,
-            log_area.height as usize,
-            log_area.width as usize,
+            inner_height,
+            inner_width,
             self.scroll_position,
             false,
         );
@@ -268,12 +279,23 @@ impl LogView {
                 Block::default()
                     .title(format!("{}{}", title, help_text))
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Cyan)),
+                    .border_style(Style::default().fg(Color::Cyan))
+                    .style(Style::default().bg(Color::Black)),
             )
-            .wrap(Wrap { trim: false })
-            .scroll((self.scroll_position as u16, 0));
+            .wrap(Wrap { trim: false });
 
+        // Draw frame first, then clear inner area to ensure old content is wiped
         frame.render_widget(log_paragraph, log_area);
+        frame.render_widget(Clear, inner_area);
+
+        // Finally render text without a block onto inner area to fill precisely
+        let content_paragraph = Paragraph::new(
+            Self::fit_text(&log_text, inner_height, inner_width, self.scroll_position, false),
+        )
+        .style(Style::default().fg(Color::White).bg(Color::Black))
+        .wrap(Wrap { trim: false });
+
+        frame.render_widget(content_paragraph, inner_area);
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) -> () {
@@ -354,7 +376,26 @@ impl LogView {
 
         // Collect and build the final Text widget
         let collected_lines: Vec<Line> = line_spans.collect();
-        Text::from(collected_lines.into_iter().rev().collect::<Vec<Line>>())
+
+        // Right-pad each line to full width to ensure clearing of previous longer content
+        let padded: Vec<Line> = collected_lines
+            .into_iter()
+            .map(|line| {
+                let mut spans = line.spans;
+                let current_width: usize = spans
+                    .iter()
+                    .map(|sp| sp.content.chars().count())
+                    .sum();
+                if current_width < cols {
+                    let pad_len = cols - current_width;
+                    let pad = " ".repeat(pad_len);
+                    spans.push(Span::raw(pad));
+                }
+                Line::default().spans(spans)
+            })
+            .collect();
+
+        Text::from(padded.into_iter().rev().collect::<Vec<Line>>())
     }
 
     fn chunked_string(s: &str, first_chunk_size: usize, chunk_size: usize) -> Vec<&str> {
