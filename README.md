@@ -3,7 +3,8 @@
 A TUI application for monitoring and managing SLURM jobs.
 
 It provides an intuitive, interactive interface to view, filter, sort, and manage SLURM jobs, making SLURM job management more efficient and user-friendly.
-
+## New Feature
+z auto-zip array job
 ## ✨ Features
 
 - **🔄 Real-time Job Monitoring**: View and refresh SLURM job statuses in real-time
